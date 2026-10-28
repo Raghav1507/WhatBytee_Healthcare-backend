@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthcare API - Test Console</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background:#0f172a; color:#e2e8f0; padding: 24px; }
+  h1 { font-size: 22px; margin-bottom: 4px; color:#38bdf8; }
+  .sub { color:#94a3b8; font-size: 13px; margin-bottom: 20px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1100px; }
+  .card { background:#1e293b; border:1px solid #334155; border-radius: 12px; padding: 18px; }
+  .card h2 { font-size: 15px; margin-bottom: 12px; color:#f1f5f9; }
+  label { display:block; font-size: 12px; color:#94a3b8; margin: 8px 0 4px; }
+  input, textarea, select { width:100%; padding:9px 10px; border-radius:8px; border:1px solid #475569; background:#0f172a; color:#e2e8f0; font-size:13px; }
+  button { margin-top:14px; width:100%; padding:10px; border:0; border-radius:8px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; font-size:14px; }
+  button:hover { background:#1d4ed8; }
+  button.green { background:#059669; } button.green:hover { background:#047857; }
+  button.red { background:#dc2626; } button.red:hover { background:#b91c1c; }
+  button.ghost { background:#475569; } button.ghost:hover { background:#64748b; }
+  .full { grid-column: 1 / -1; }
+  pre { background:#020617; border:1px solid #334155; border-radius:8px; padding:12px; font-size:12px; overflow:auto; max-height:320px; white-space:pre-wrap; word-break:break-word; color:#a5f3fc; margin-top:12px; }
+  .token { font-size:11px; color:#fbbf24; word-break:break-all; background:#020617; padding:8px; border-radius:6px; margin-top:8px; border:1px solid #334155; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; background:#334155; }
+  .badge.ok { background:#064e3b; color:#6ee7b7; } .badge.err { background:#7f1d1d; color:#fca5a5; }
+  .row { display:flex; gap:8px; } .row > * { flex:1; }
+  .muted { color:#64748b; font-size:12px; margin-top:8px; }
+  .list { list-style:none; margin-top:10px; }
+  .list li { background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .list button { width:auto; margin:0; padding:5px 10px; font-size:12px; }
+</style>
+</head>
+<body>
+  <h1>Healthcare API — Test Console</h1>
+  <div class="sub">Click through signup → login → manage records. No Postman needed.</div>
+
+  <div class="grid">
+    <!-- AUTH -->
+    <div class="card">
+      <h2>1 · Sign Up / Log In</h2>
+      <label>Name</label><input id="name" placeholder="John Doe" value="Test User">
+      <label>Email</label><input id="email" type="email" placeholder="you@example.com" value="you@example.com">
+      <div class="row">
+        <div><label>Password</label><input id="password" type="password" value="Str0ngPass!23"></div>
+        <div><label>Confirm</label><input id="password2" type="password" value="Str0ngPass!23"></div>
+      </div>
+      <div class="row">
+        <button class="green" onclick="register()">Sign Up</button>
+        <button onclick="login()">Log In</button>
+      </div>
+      <div id="authStatus" class="muted">Not logged in.</div>
+      <div id="tokenBox" class="token" style="display:none"></div>
+      <button class="ghost" onclick="loadMe()" style="margin-top:10px">GET /me (profile)</button>
+    </div>
+
+    <!-- PATIENTS -->
+    <div class="card">
+      <h2>2 · Patients <span id="pCount" class="badge">0</span></h2>
+      <label>Name</label><input id="pName" value="Jane Patient">
+      <div class="row">
+        <div><label>Age</label><input id="pAge" type="number" value="34"></div>
+        <div><label>Gender</label>
+          <select id="pGender"><option>female</option><option>male</option><option>other</option><option>prefer_not_to_say</option></select>
+        </div>
+      </div>
+      <label>Phone</label><input id="pPhone" value="+1 555 2233">
+      <button onclick="createPatient()">Create Patient</button>
+      <button class="ghost" onclick="listPatients()">Refresh List</button>
+      <ul class="list" id="patientList"></ul>
+    </div>
+
+    <!-- DOCTORS -->
+    <div class="card">
+      <h2>3 · Doctors <span id="dCount" class="badge">0</span></h2>
+      <label>Name</label><input id="dName" value="Sarah House">
+      <label>Specialization</label><input id="dSpec" value="Cardiology">
+      <div class="row">
+        <div><label>License</label><input id="dLic" value="LIC-1001"></div>
+        <div><label>Exp (yrs)</label><input id="dExp" type="number" value="12"></div>
+      </div>
+      <button onclick="createDoctor()">Create Doctor</button>
+      <button class="ghost" onclick="listDoctors()">Refresh List</button>
+      <ul class="list" id="doctorList"></ul>
+    </div>
+
+    <!-- MAPPINGS -->
+    <div class="card">
+      <h2>4 · Assign Doctor → Patient</h2>
+      <label>Patient</label><select id="mapPatient"></select>
+      <label>Doctor</label><select id="mapDoctor"></select>
+      <button onclick="createMapping()">Assign</button>
+      <button class="ghost" onclick="listMappings()">Refresh Mappings</button>
+      <ul class="list" id="mappingList"></ul>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="card full">
+      <h2>Response Output</h2>
+      <pre id="out">// Interact with the panels above — responses appear here.</pre>
+    </div>
+  </div>
+
+<script>
+const BASE = '';
+let TOKEN = localStorage.getItem('hc_token') || '';
+const $ = id => document.getElementById(id);
+const show = (id, v) => { $(id).textContent = typeof v === 'string' ? v : JSON.stringify(v, null, 2); };
+
+function authHeaders() { return TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}; }
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', ...authHeaders() } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  let data; try { data = await res.json(); } catch { data = { raw: await res.text() }; }
+  show('out', { request: method + ' ' + path, status: res.status, response: data });
+  return { status: res.status, data };
+}
+
+function setToken(t) {
+  TOKEN = t; localStorage.setItem('hc_token', t);
+  $('tokenBox').style.display = t ? 'block' : 'none';
+  $('tokenBox').textContent = t ? 'TOKEN: ' + t : '';
+  $('authStatus').innerHTML = t
+    ? '<span class="badge ok">logged in</span>'
+    : '<span class="badge err">not logged in</span>';
+}
+
+async function register() {
+  const { status, data } = await api('POST', '/api/auth/register/', {
+    name: $('name').value, email: $('email').value,
+    password: $('password').value, password2: $('password2').value
+  });
+  if (status === 201) { alert('Registered! Now click Log In.'); }
+}
+
+async function login() {
+  const { status, data } = await api('POST', '/api/auth/login/', {
+    email: $('email').value, password: $('password').value
+  });
+  if (status === 200 && data.data && data.data.access) {
+    setToken(data.data.access);
+    alert('Logged in as ' + data.data.user.email);
+    listPatients(); listDoctors(); listMappings();
+  }
+}
+
+async function loadMe() { await api('GET', '/api/auth/me/'); }
+
+async function createPatient() {
+  await api('POST', '/api/patients/', {
+    name: $('pName').value, age: +$('pAge').value,
+    gender: $('pGender').value, phone: $('pPhone').value
+  });
+  listPatients();
+}
+
+async function listPatients() {
+  const { status, data } = await api('GET', '/api/patients/');
+  if (status !== 200) return;
+  const results = data.data.results || [];
+  $('pCount').textContent = data.data.count;
+  $('patientList').innerHTML = results.map(p =>
+    `<li><span><b>${p.name}</b> · ${p.age} · ${p.gender}</span>
+      <span><button class="red" onclick="delPatient('${p.id}')">Delete</button></span></li>`).join('')
+    || '<li class="muted">No patients yet.</li>';
+  $('mapPatient').innerHTML = results.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+async function delPatient(id) { await api('DELETE', `/api/patients/${id}/`); listPatients(); }
+
+async function createDoctor() {
+  await api('POST', '/api/doctors/', {
+    name: $('dName').value, specialization: $('dSpec').value,
+    license_number: $('dLic').value, years_of_experience: +$('dExp').value
+  });
+  listDoctors();
+}
+
+async function listDoctors() {
+  const { status, data } = await api('GET', '/api/doctors/');
+  if (status !== 200) return;
+  const results = data.data.results || [];
+  $('dCount').textContent = data.data.count;
+  $('doctorList').innerHTML = results.map(d =>
+    `<li><span><b>Dr. ${d.name}</b> · ${d.specialization}</span>
+      <span><button class="red" onclick="delDoctor('${d.id}')">Delete</button></span></li>`).join('')
+    || '<li class="muted">No doctors yet.</li>';
+  $('mapDoctor').innerHTML = results.map(d => `<option value="${d.id}">Dr. ${d.name}</option>`).join('');
+}
+
+async function delDoctor(id) { await api('DELETE', `/api/doctors/${id}/`); listDoctors(); }
+
+async function createMapping() {
+  const p = $('mapPatient').value, d = $('mapDoctor').value;
+  if (!p || !d) { alert('Create a patient and a doctor first.'); return; }
+  await api('POST', '/api/mappings/', { patient: p, doctor: d });
+  listMappings();
+}
+
+async function listMappings() {
+  const { status, data } = await api('GET', '/api/mappings/');
+  if (status !== 200) return;
+  const results = data.data.results || [];
+  $('mappingList').innerHTML = results.map(m =>
+    `<li><span><b>${m.patient_name}</b> → Dr. ${m.doctor_name}</span>
+      <span><button class="red" onclick="delMapping('${m.id}')">Unassign</button></span></li>`).join('')
+    || '<li class="muted">No assignments yet.</li>';
+}
+
+async function delMapping(id) { await api('DELETE', `/api/mappings/${id}/`); listMappings(); }
+
+// Restore session on load.
+setToken(TOKEN);
+if (TOKEN) { listPatients(); listDoctors(); listMappings(); }
+</script>
+</body>
+</html>

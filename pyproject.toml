@@ -1,0 +1,39 @@
+[project]
+name = "healthcare-backend"
+version = "1.0.0"
+description = "Django + DRF + PostgreSQL backend for a healthcare application"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=6.0,<7.0",
+    "django-environ>=0.11",
+    "djangorestframework>=3.15",
+    "djangorestframework-simplejwt>=5.3",
+    "psycopg2-binary>=2.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "**/migrations", "__pycache__"]
+
+[tool.ruff.lint]
+# Pyflakes (F), pycodestyle errors (E), isort (I), flake8-bugbear (B),
+# flake8-simplify (SIM), and ruff-specific rules (RUF).
+select = ["F", "E", "I", "B", "SIM", "RUF"]
+ignore = [
+    # DRF/Django framework idiom: class attributes such as `fields`,
+    # `permission_classes`, and `throttle_classes` are conventionally
+    # mutable class-level lists/tuples and should not be ClassVar.
+    "RUF012",
+    # Allow long URLs/strings common in API code.
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Settings modules use star-imports by design when switching environments.
+"config/settings/*.py" = ["F403", "F405", "E402"]
+# Test files often have unused expressions for readability.
+"**/tests/**" = ["B011"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "core", "config"]
